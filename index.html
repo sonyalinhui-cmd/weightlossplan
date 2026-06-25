@@ -651,8 +651,9 @@
           const card = document.createElement('article');
           card.className = 'exercise-card';
 
-          const media = item.imageUrl
-            ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)} 姿勢示範" loading="lazy">`
+          const imageUrl = normalizeImageUrl(item.imageUrl);
+          const media = imageUrl
+            ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)} 姿勢示範" loading="lazy" onerror="this.replaceWith(createImageFallback('${escapeJs(item.name)}'))">`
             : '<div class="exercise-photo-missing">請在 Code.gs 的 imageUrl 填入實體姿勢照片網址</div>';
 
           card.innerHTML = `
@@ -823,6 +824,36 @@
         return Boolean(window.google && google.script && google.script.run);
       }
 
+      function normalizeImageUrl(url) {
+        const value = String(url || '').trim();
+        if (!value) return '';
+
+        const driveId = getGoogleDriveFileId(value);
+        if (driveId) {
+          return `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w1200`;
+        }
+
+        return value;
+      }
+
+      function getGoogleDriveFileId(url) {
+        const text = String(url || '');
+        const filePathMatch = text.match(/\/file\/d\/([^/]+)/);
+        if (filePathMatch) return filePathMatch[1];
+
+        const idParamMatch = text.match(/[?&]id=([^&]+)/);
+        if (idParamMatch) return decodeURIComponent(idParamMatch[1]);
+
+        return '';
+      }
+
+      function createImageFallback(name) {
+        const fallback = document.createElement('div');
+        fallback.className = 'exercise-photo-missing';
+        fallback.textContent = `${name} 圖片無法載入，請確認 Google Drive 權限是「知道連結的任何人可查看」`;
+        return fallback;
+      }
+
       function showError(error) {
         $('#status').textContent = error?.message || String(error);
       }
@@ -838,6 +869,14 @@
           .replaceAll('>', '&gt;')
           .replaceAll('"', '&quot;')
           .replaceAll("'", '&#039;');
+      }
+
+      function escapeJs(value) {
+        return String(value || '')
+          .replaceAll('\\', '\\\\')
+          .replaceAll("'", "\\'")
+          .replaceAll('\n', '\\n')
+          .replaceAll('\r', '');
       }
 
       window.addEventListener('load', init);
