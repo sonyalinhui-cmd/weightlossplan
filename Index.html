@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fitness OS</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f8faf8;
+        --surface: #ffffff;
+        --line: #d9e2dc;
+        --text: #17211b;
+        --muted: #68776f;
+        --green: #4d9b73;
+        --green-dark: #2e7552;
+        --pink: #f39bb4;
+        --yellow: #f6c95f;
+        --blue: #78a6d8;
+        --danger: #cc5b5b;
+        --shadow: 0 10px 30px rgba(32, 55, 43, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      .app {
+        width: min(720px, 100%);
+        margin: 0 auto;
+        padding: 18px 14px 32px;
+      }
+
+      header {
+        padding: 18px 4px 10px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .section {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+        margin-top: 12px;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        line-height: 1.3;
+      }
+
+      .grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .grid.two {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 10px 11px;
+      }
+
+      textarea {
+        min-height: 82px;
+        resize: vertical;
+      }
+
+      .segmented,
+      .check-row,
+      .meal-row {
+        display: grid;
+        gap: 8px;
+      }
+
+      .segmented {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .person-btn,
+      .pill {
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 9px 12px;
+        cursor: pointer;
+      }
+
+      .person-btn.active,
+      .pill.active {
+        border-color: var(--green);
+        background: #e7f4ed;
+        color: var(--green-dark);
+        font-weight: 700;
+      }
+
+      .check-row {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .metric-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .metric {
+        min-height: 76px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdfb;
+        padding: 10px;
+      }
+
+      .metric small {
+        display: block;
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 1.2rem;
+      }
+
+      .meal-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fbfdfb;
+      }
+
+      .meal-card + .meal-card {
+        margin-top: 8px;
+      }
+
+      .meal-top {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .meal-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .meal-total {
+        color: var(--green-dark);
+        font-weight: 800;
+        font-size: 0.9rem;
+      }
+
+      .ghost,
+      .danger,
+      .submit {
+        min-height: 44px;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      .ghost {
+        background: #edf4ef;
+        color: var(--green-dark);
+      }
+
+      .danger {
+        background: #f8e7e7;
+        color: var(--danger);
+      }
+
+      .submit {
+        width: 100%;
+        background: var(--green);
+        color: #fff;
+        margin-top: 14px;
+      }
+
+      .submit:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      .workout {
+        display: grid;
+        gap: 10px;
+      }
+
+      .exercise-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdfb;
+      }
+
+      .exercise-card img,
+      .exercise-photo-missing {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        background: #edf4ef;
+      }
+
+      .exercise-photo-missing {
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.9rem;
+      }
+
+      .exercise-body {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .exercise-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .exercise-heading strong {
+        font-size: 1rem;
+      }
+
+      .exercise-meta {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .exercise-meta span {
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid var(--line);
+        padding: 7px;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .exercise-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+
+      .tag {
+        border-radius: 999px;
+        background: #edf4ef;
+        color: var(--green-dark);
+        padding: 6px 9px;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .body-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+        font-size: 0.95rem;
+      }
+
+      .body-toggle input {
+        width: 20px;
+        min-height: 20px;
+      }
+
+      .status {
+        min-height: 22px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      @media (max-width: 520px) {
+        .grid.two,
+        .metric-row,
+        .meal-top {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 1.75rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>Joan Fitness OS</h1>
+        <div class="subtitle">每日飲食、蛋白質、喝水、運動和心情打卡</div>
+      </header>
+
+      <form id="checkInForm">
+        <section class="section">
+          <div class="section-title">
+            <h2>今日打卡</h2>
+            <span id="todayLabel" class="tag">載入中</span>
+          </div>
+          <div class="grid two">
+            <label>
+              日期
+              <input id="date" type="date" required>
+            </label>
+            <label>
+              人員
+              <div class="segmented" role="group" aria-label="人員">
+                <button class="person-btn active" type="button" data-person="Joan">玉惠</button>
+                <button class="person-btn" type="button" data-person="Ria">采葳</button>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>飲食完成</h2>
+          </div>
+          <div class="check-row">
+            <button class="pill" type="button" data-check="breakfast">早餐</button>
+            <button class="pill" type="button" data-check="lunch">午餐</button>
+            <button class="pill" type="button" data-check="dinner">晚餐</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>餐點明細</h2>
+            <button id="addMeal" class="ghost" type="button">新增</button>
+          </div>
+          <div id="mealList"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>今日目標</h2>
+          </div>
+          <div class="metric-row">
+            <div class="metric">
+              <small>蛋白質</small>
+              <strong><span id="proteinTotal">0</span> g</strong>
+            </div>
+            <div class="metric">
+              <small>熱量</small>
+              <strong><span id="calorieTotal">0</span></strong>
+            </div>
+            <div class="metric">
+              <small>完成率</small>
+              <strong><span id="completionRate">0</span>%</strong>
+            </div>
+          </div>
+          <div class="grid two" style="margin-top: 10px;">
+            <label>
+              喝水 ml
+              <input id="waterMl" inputmode="numeric" type="number" min="0" step="50" placeholder="2000">
+            </label>
+            <label>
+              步數
+              <input id="steps" inputmode="numeric" type="number" min="0" step="100" placeholder="8000">
+            </label>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>今日運動</h2>
+            <button class="pill" type="button" data-check="workoutDone">完成</button>
+          </div>
+          <div id="workoutType" class="tag">載入中</div>
+          <div id="workoutItems" class="workout" style="margin-top: 10px;"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-title">
+            <h2>心情與備註</h2>
+          </div>
+          <div class="grid two">
+            <label>
+              心情
+              <select id="mood">
+                <option value="😊">😊</option>
+                <option value="🙂">🙂</option>
+                <option value="😴">😴</option>
+                <option value="😵">😵</option>
+                <option value="🤒">🤒</option>
+              </select>
+            </label>
+            <label class="body-toggle">
+              <input id="bodyEnabled" type="checkbox">
+              今天也記身體數據
+            </label>
+          </div>
+          <textarea id="note" placeholder="今天的狀態、外食、睡眠或任何想記的事"></textarea>
+        </section>
+
+        <section id="bodySection" class="section" hidden>
+          <div class="section-title">
+            <h2>身體追蹤</h2>
+          </div>
+          <div class="grid two">
+            <label>體重 <input id="weight" type="number" step="0.1"></label>
+            <label>體脂 <input id="bodyFat" type="number" step="0.1"></label>
+            <label>腰圍 <input id="waist" type="number" step="0.1"></label>
+            <label>下腹圍 <input id="lowerBelly" type="number" step="0.1"></label>
+            <label>臀圍 <input id="hips" type="number" step="0.1"></label>
+          </div>
+          <textarea id="bodyNote" placeholder="量測時間、狀態或備註"></textarea>
+        </section>
+
+        <button id="submitBtn" class="submit" type="submit">送出到 Google Sheet</button>
+        <div id="status" class="status"></div>
+      </form>
+    </main>
+
+    <template id="mealTemplate">
+      <div class="meal-card">
+        <div class="meal-top">
+          <label>
+            餐別
+            <select data-field="mealType">
+              <option value="早餐">早餐</option>
+              <option value="午餐">午餐</option>
+              <option value="晚餐">晚餐</option>
+              <option value="點心">點心</option>
+            </select>
+          </label>
+          <label>
+            食物
+            <select data-field="foodName"></select>
+          </label>
+        </div>
+        <div class="meal-top" style="margin-top: 8px;">
+          <label>
+            份數
+            <input data-field="servings" type="number" min="0" step="0.25" value="1">
+          </label>
+          <label>
+            備註
+            <input data-field="note" type="text" placeholder="少飯、加蛋等">
+          </label>
+        </div>
+        <div class="meal-actions">
+          <span class="meal-total">0 g 蛋白質</span>
+          <button class="danger" type="button" data-action="remove">刪除</button>
+        </div>
+      </div>
+    </template>
+
+    <script>
+      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz1_Ki_47wZf7MES10REcANOxw5KkRyzyT3D19R86NdfKRhbZfJL_yG70Ufg_bh6-yJMg/exec';
+
+      const state = {
+        person: 'Joan',
+        checks: {
+          breakfast: false,
+          lunch: false,
+          dinner: false,
+          workoutDone: false,
+        },
+        mealTemplates: [],
+        workout: null,
+      };
+
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+      function init() {
+        bindEvents();
+        if (isAppsScriptHost()) {
+          google.script.run
+            .withSuccessHandler(applyInitialData)
+            .withFailureHandler(showError)
+            .getInitialData();
+          return;
+        }
+
+        applyInitialData(getStaticInitialData());
+      }
+
+      function bindEvents() {
+        $$('.person-btn').forEach((button) => {
+          button.addEventListener('click', () => {
+            state.person = button.dataset.person;
+            $$('.person-btn').forEach((item) => item.classList.toggle('active', item === button));
+          });
+        });
+
+        $$('[data-check]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const key = button.dataset.check;
+            state.checks[key] = !state.checks[key];
+            button.classList.toggle('active', state.checks[key]);
+            updateTotals();
+          });
+        });
+
+        $('#addMeal').addEventListener('click', () => addMeal());
+        $('#mealList').addEventListener('input', updateTotals);
+        $('#mealList').addEventListener('change', updateTotals);
+        $('#waterMl').addEventListener('input', updateTotals);
+        $('#bodyEnabled').addEventListener('change', () => {
+          $('#bodySection').hidden = !$('#bodyEnabled').checked;
+        });
+        $('#checkInForm').addEventListener('submit', submitForm);
+      }
+
+      function addMeal(mealType = '午餐') {
+        const fragment = $('#mealTemplate').content.cloneNode(true);
+        const card = fragment.querySelector('.meal-card');
+        const mealTypeSelect = card.querySelector('[data-field="mealType"]');
+        const foodSelect = card.querySelector('[data-field="foodName"]');
+
+        mealTypeSelect.value = mealType;
+        state.mealTemplates.forEach((food) => {
+          const option = document.createElement('option');
+          option.value = food.name;
+          option.textContent = `${food.name} (${food.protein}g)`;
+          foodSelect.appendChild(option);
+        });
+
+        card.querySelector('[data-action="remove"]').addEventListener('click', () => {
+          card.remove();
+          updateTotals();
+        });
+
+        $('#mealList').appendChild(fragment);
+        updateTotals();
+      }
+
+      function collectMeals() {
+        return $$('#mealList .meal-card').map((card) => {
+          const foodName = card.querySelector('[data-field="foodName"]').value;
+          const template = state.mealTemplates.find((food) => food.name === foodName) || {};
+          const servings = Number(card.querySelector('[data-field="servings"]').value || 0);
+          const proteinPerServing = Number(template.protein || 0);
+          const caloriesPerServing = Number(template.calories || 0);
+          const proteinTotal = round1(servings * proteinPerServing);
+          const calorieTotal = Math.round(servings * caloriesPerServing);
+
+          return {
+            mealType: card.querySelector('[data-field="mealType"]').value,
+            foodName,
+            servings,
+            proteinPerServing,
+            caloriesPerServing,
+            proteinTotal,
+            calorieTotal,
+            note: card.querySelector('[data-field="note"]').value,
+          };
+        });
+      }
+
+      function updateTotals() {
+        const meals = collectMeals();
+        const protein = round1(meals.reduce((sum, meal) => sum + meal.proteinTotal, 0));
+        const calories = Math.round(meals.reduce((sum, meal) => sum + meal.calorieTotal, 0));
+        const points = [
+          state.checks.breakfast,
+          state.checks.lunch,
+          state.checks.dinner,
+          protein >= 70,
+          Number($('#waterMl').value || 0) >= 2000,
+          state.checks.workoutDone,
+        ].filter(Boolean).length;
+
+        $('#proteinTotal').textContent = protein;
+        $('#calorieTotal').textContent = calories;
+        $('#completionRate').textContent = Math.round((points / 6) * 100);
+
+        $$('#mealList .meal-card').forEach((card, index) => {
+          const meal = meals[index];
+          card.querySelector('.meal-total').textContent = `${meal.proteinTotal} g 蛋白質 / ${meal.calorieTotal} kcal`;
+        });
+      }
+
+      function renderWorkout() {
+        $('#workoutType').textContent = state.workout?.type || '今日運動';
+        $('#workoutItems').innerHTML = '';
+        (state.workout?.items || []).forEach((item) => {
+          const card = document.createElement('article');
+          card.className = 'exercise-card';
+
+          const media = item.imageUrl
+            ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)} 姿勢示範" loading="lazy">`
+            : '<div class="exercise-photo-missing">請在 Code.gs 的 imageUrl 填入實體姿勢照片網址</div>';
+
+          card.innerHTML = `
+            ${media}
+            <div class="exercise-body">
+              <div class="exercise-heading">
+                <strong>${escapeHtml(item.name)}</strong>
+                <span class="tag">${escapeHtml(item.category)}</span>
+              </div>
+              <div class="exercise-meta">
+                <span>${escapeHtml(item.reps)}</span>
+                <span>${escapeHtml(item.sets)}</span>
+                <span>${escapeHtml(item.rest)}</span>
+              </div>
+              <p class="exercise-note">${escapeHtml(item.cues)}</p>
+              <p class="exercise-note">常見錯誤：${escapeHtml(item.mistakes)}</p>
+            </div>
+          `;
+          $('#workoutItems').appendChild(card);
+        });
+      }
+
+      function submitForm(event) {
+        event.preventDefault();
+        const payload = {
+          date: $('#date').value,
+          person: state.person,
+          ...state.checks,
+          meals: collectMeals(),
+          waterMl: Number($('#waterMl').value || 0),
+          steps: Number($('#steps').value || 0),
+          mood: $('#mood').value,
+          note: $('#note').value,
+          body: {
+            enabled: $('#bodyEnabled').checked,
+            weight: $('#weight').value,
+            bodyFat: $('#bodyFat').value,
+            waist: $('#waist').value,
+            lowerBelly: $('#lowerBelly').value,
+            hips: $('#hips').value,
+            note: $('#bodyNote').value,
+          },
+        };
+
+        $('#submitBtn').disabled = true;
+        $('#status').textContent = '送出中...';
+
+        if (!isAppsScriptHost()) {
+          submitToWebApp(payload);
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler((result) => {
+            $('#submitBtn').disabled = false;
+            $('#status').textContent = `已存入：蛋白質 ${result.totalProtein}g，完成率 ${Math.round(result.completionRate * 100)}%`;
+          })
+          .withFailureHandler((error) => {
+            $('#submitBtn').disabled = false;
+            showError(error);
+          })
+          .submitCheckIn(payload);
+      }
+
+      function submitToWebApp(payload) {
+        if (!WEB_APP_URL) {
+          $('#submitBtn').disabled = false;
+          $('#status').textContent = '請先在 Index.html 設定 WEB_APP_URL';
+          return;
+        }
+
+        fetch(WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify(payload),
+        })
+          .then(() => {
+            const meals = collectMeals();
+            const protein = round1(meals.reduce((sum, meal) => sum + meal.proteinTotal, 0));
+            $('#submitBtn').disabled = false;
+            $('#status').textContent = `已送出到 Google Sheet：蛋白質 ${protein}g`;
+          })
+          .catch(showError);
+      }
+
+      function applyInitialData(data) {
+        state.mealTemplates = data.mealTemplates || [];
+        state.workout = data.workout;
+        $('#date').value = data.today;
+        $('#todayLabel').textContent = data.today;
+        renderWorkout();
+        addMeal('早餐');
+        updateTotals();
+      }
+
+      function getStaticInitialData() {
+        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+        return {
+          today,
+          mealTemplates: [
+            { name: '茶葉蛋', category: '蛋白質', calories: 75, protein: 6 },
+            { name: '統一陽光無加糖高纖豆漿', category: '飲品', calories: 160, protein: 14 },
+            { name: '光泉純乳優格 135g', category: '乳製品', calories: 115, protein: 5 },
+            { name: '無糖優格', category: '乳製品', calories: 100, protein: 6 },
+            { name: '牛排', category: '蛋白質', calories: 350, protein: 35 },
+            { name: '娃娃菜', category: '蔬菜', calories: 35, protein: 2 },
+            { name: '黃豆芽', category: '蔬菜', calories: 70, protein: 6 },
+            { name: '白飯', category: '主食', calories: 280, protein: 5 },
+            { name: '鐵板麵', category: '外食', calories: 500, protein: 12 },
+          ],
+          workout: getStaticWorkout(today),
+        };
+      }
+
+      function getStaticWorkout(dateText) {
+        const date = new Date(`${dateText}T00:00:00+08:00`);
+        const weekday = date.getDay();
+        const exercises = getStaticExerciseLibrary();
+
+        if (weekday === 1 || weekday === 3 || weekday === 5) {
+          return {
+            type: 'A 日',
+            items: [exercises['Dead Bug'], exercises['臀橋'], exercises['Bird Dog'], exercises['彈力帶深蹲'], exercises['伸展']],
+          };
+        }
+
+        if (weekday === 2 || weekday === 4) {
+          return {
+            type: 'B 日',
+            items: [exercises['Cat-Cow'], exercises['90/90'], exercises['蝴蝶式'], exercises['四字腿'], exercises['嬰兒式'], exercises['快走']],
+          };
+        }
+
+        if (weekday === 6) {
+          return {
+            type: 'A 或 B',
+            items: [exercises['Dead Bug'], exercises['臀橋'], exercises['Cat-Cow'], exercises['90/90']],
+          };
+        }
+
+        return {
+          type: '散步或休息',
+          items: [exercises['散步或休息']],
+        };
+      }
+
+      function getStaticExerciseLibrary() {
+        return {
+          'Dead Bug': { name: 'Dead Bug', category: '核心', reps: '左右 15 下', sets: '3 組', rest: '30～45 秒', imageUrl: '', cues: '下背貼地，吐氣時伸手腳，動作慢而穩。', mistakes: '腰拱起、速度太快、憋氣。' },
+          '臀橋': { name: '臀橋', category: '臀腿', reps: '15 下', sets: '3 組', rest: '45 秒', imageUrl: '', cues: '腳跟踩穩，臀部發力推起，最高點停 1 秒。', mistakes: '用腰頂、膝蓋外開或內夾、肩頸用力。' },
+          'Bird Dog': { name: 'Bird Dog', category: '核心', reps: '左右 12 下', sets: '3 組', rest: '30～45 秒', imageUrl: '', cues: '骨盆保持水平，手腳向遠方延伸。', mistakes: '身體晃動、抬腳過高、脖子緊繃。' },
+          '彈力帶深蹲': { name: '彈力帶深蹲', category: '臀腿', reps: '15 下', sets: '3 組', rest: '60 秒', imageUrl: '', cues: '膝蓋朝腳尖方向，屁股往後坐，腳掌踩穩。', mistakes: '膝蓋內夾、腳跟離地、上半身過度前傾。' },
+          '伸展': { name: '伸展', category: '伸展', reps: '3～5 分鐘', sets: '1 組', rest: '無', imageUrl: '', cues: '選今天緊繃的位置，停留在舒服可呼吸的角度。', mistakes: '彈震、硬壓到疼痛、憋氣。' },
+          'Cat-Cow': { name: 'Cat-Cow', category: '伸展', reps: '1 分鐘', sets: '1 組', rest: '無', imageUrl: '', cues: '配合呼吸，脊椎一節一節活動。', mistakes: '聳肩、手肘鎖死、只動脖子。' },
+          '90/90': { name: '90/90', category: '伸展', reps: '左右各 1 分鐘', sets: '1 組', rest: '無', imageUrl: '', cues: '坐骨穩定，身體往前折時保持背長。', mistakes: '膝蓋懸空硬壓、腰背塌掉、疼痛仍硬撐。' },
+          '蝴蝶式': { name: '蝴蝶式', category: '伸展', reps: '1 分鐘', sets: '1 組', rest: '無', imageUrl: '', cues: '腳掌相對，膝蓋自然放鬆，不需要彈震。', mistakes: '用手硬壓膝蓋、背拱太多、憋氣。' },
+          '四字腿': { name: '四字腿', category: '伸展', reps: '左右 30 秒', sets: '1 組', rest: '無', imageUrl: '', cues: '臀部有拉伸感即可，膝蓋不舒服就降低角度。', mistakes: '把膝蓋硬拉向身體、肩頸緊繃。' },
+          '嬰兒式': { name: '嬰兒式', category: '伸展', reps: '1 分鐘', sets: '1 組', rest: '無', imageUrl: '', cues: '臀部往腳跟坐，手臂向前延伸，放慢呼吸。', mistakes: '肩膀緊繃、憋氣、膝蓋不適仍勉強。' },
+          '快走': { name: '快走', category: '有氧', reps: '20～30 分鐘', sets: '1 組', rest: '依狀態', imageUrl: '', cues: '保持可以說短句的速度，肩膀放鬆，步伐穩定。', mistakes: '一開始衝太快、含胸、腳步過大。' },
+          '散步或休息': { name: '散步或休息', category: '恢復', reps: '20～30 分鐘或休息', sets: '1 組', rest: '依狀態', imageUrl: '', cues: '以恢復為主，身體疲勞時完整休息也算完成。', mistakes: '休息日硬做高強度、忽略疼痛。' },
+        };
+      }
+
+      function isAppsScriptHost() {
+        return Boolean(window.google && google.script && google.script.run);
+      }
+
+      function showError(error) {
+        $('#status').textContent = error?.message || String(error);
+      }
+
+      function round1(value) {
+        return Math.round(Number(value || 0) * 10) / 10;
+      }
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
+      window.addEventListener('load', init);
+    </script>
+  </body>
+</html>
