@@ -210,6 +210,43 @@
         font-size: 0.9rem;
       }
 
+      .meal-text-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .meal-textarea {
+        min-height: 74px;
+      }
+
+      .template-hint {
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .parsed-list {
+        display: grid;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .parsed-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 8px 10px;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .parsed-item strong {
+        color: var(--text);
+      }
+
       .ghost,
       .danger,
       .submit {
@@ -397,9 +434,27 @@
         <section class="section">
           <div class="section-title">
             <h2>餐點明細</h2>
-            <button id="addMeal" class="ghost" type="button">新增</button>
           </div>
-          <div id="mealList"></div>
+          <div class="template-hint" id="templateHint">從 Google Sheet 的 Meal Template 讀取品項中...</div>
+          <div id="mealComposer" class="meal-text-grid" style="margin-top: 10px;">
+            <label>
+              早餐吃什麼
+              <textarea class="meal-textarea" data-meal-text="早餐" placeholder="例：2顆蛋 + 豆漿 + 優格"></textarea>
+            </label>
+            <label>
+              午餐吃什麼
+              <textarea class="meal-textarea" data-meal-text="午餐" placeholder="例：牛排 + 白飯半碗 + 娃娃菜"></textarea>
+            </label>
+            <label>
+              晚餐吃什麼
+              <textarea class="meal-textarea" data-meal-text="晚餐" placeholder="例：黃豆芽、無糖優格"></textarea>
+            </label>
+            <label>
+              點心 / 其他
+              <textarea class="meal-textarea" data-meal-text="點心" placeholder="例：茶葉蛋、乳清半份"></textarea>
+            </label>
+          </div>
+          <div id="parsedMeals" class="parsed-list"></div>
         </section>
 
         <section class="section">
@@ -545,7 +600,7 @@
           return;
         }
 
-        applyInitialData(getStaticInitialData());
+        loadInitialFromWebApp();
       }
 
       function bindEvents() {
@@ -565,9 +620,8 @@
           });
         });
 
-        $('#addMeal').addEventListener('click', () => addMeal());
-        $('#mealList').addEventListener('input', updateTotals);
-        $('#mealList').addEventListener('change', updateTotals);
+        $('#mealComposer').addEventListener('input', updateTotals);
+        $('#mealComposer').addEventListener('change', updateTotals);
         $('#waterMl').addEventListener('input', updateTotals);
         $('#bodyEnabled').addEventListener('change', () => {
           $('#bodySection').hidden = !$('#bodyEnabled').checked;
@@ -575,50 +629,92 @@
         $('#checkInForm').addEventListener('submit', submitForm);
       }
 
-      function addMeal(mealType = '午餐') {
-        const fragment = $('#mealTemplate').content.cloneNode(true);
-        const card = fragment.querySelector('.meal-card');
-        const mealTypeSelect = card.querySelector('[data-field="mealType"]');
-        const foodSelect = card.querySelector('[data-field="foodName"]');
-
-        mealTypeSelect.value = mealType;
-        state.mealTemplates.forEach((food) => {
-          const option = document.createElement('option');
-          option.value = food.name;
-          option.textContent = `${food.name} (${food.protein}g)`;
-          foodSelect.appendChild(option);
-        });
-
-        card.querySelector('[data-action="remove"]').addEventListener('click', () => {
-          card.remove();
-          updateTotals();
-        });
-
-        $('#mealList').appendChild(fragment);
-        updateTotals();
+      function collectMeals() {
+        return Object.entries(collectMealTexts()).flatMap(([mealType, rawText]) => parseMealText(mealType, rawText));
       }
 
-      function collectMeals() {
-        return $$('#mealList .meal-card').map((card) => {
-          const foodName = card.querySelector('[data-field="foodName"]').value;
-          const template = state.mealTemplates.find((food) => food.name === foodName) || {};
-          const servings = Number(card.querySelector('[data-field="servings"]').value || 0);
-          const proteinPerServing = Number(template.protein || 0);
-          const caloriesPerServing = Number(template.calories || 0);
-          const proteinTotal = round1(servings * proteinPerServing);
-          const calorieTotal = Math.round(servings * caloriesPerServing);
+      function collectMealTexts() {
+        return $$('[data-meal-text]').reduce((result, field) => {
+          result[field.dataset.mealText] = field.value.trim();
+          return result;
+        }, {});
+      }
+
+      function parseMealText(mealType, rawText) {
+        return splitMealText(rawText).map((rawItem) => {
+          const parsed = parseQuantity(rawItem);
+          const template = findTemplate(parsed.foodText);
+          const servings = parsed.servings;
+          const proteinPerServing = Number(template?.protein || 0);
+          const caloriesPerServing = Number(template?.calories || 0);
 
           return {
-            mealType: card.querySelector('[data-field="mealType"]').value,
-            foodName,
+            mealType,
+            rawText: rawItem,
+            foodName: template?.name || parsed.foodText,
             servings,
             proteinPerServing,
             caloriesPerServing,
-            proteinTotal,
-            calorieTotal,
-            note: card.querySelector('[data-field="note"]').value,
+            proteinTotal: round1(servings * proteinPerServing),
+            calorieTotal: Math.round(servings * caloriesPerServing),
+            matched: Boolean(template),
+            note: template ? '' : '未匹配 Meal Template',
           };
         });
+      }
+
+      function splitMealText(rawText) {
+        return String(rawText || '')
+          .replaceAll('\n', '+')
+          .split(/[+＋、，,;]/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      function parseQuantity(rawItem) {
+        const text = normalizeNumberWords(rawItem.trim());
+        const suffixMatch = text.match(/^(.+?)[xX*×]\s*(\d+(?:\.\d+)?)$/);
+        if (suffixMatch) {
+          return { foodText: suffixMatch[1].trim(), servings: Number(suffixMatch[2]) };
+        }
+
+        const prefixMatch = text.match(/^(\d+(?:\.\d+)?)\s*(顆|份|杯|瓶|碗|片|個|包|盒|匙|克|g|G)?\s*(.+)$/);
+        if (prefixMatch) {
+          return { foodText: prefixMatch[3].trim(), servings: Number(prefixMatch[1]) };
+        }
+
+        const endMatch = text.match(/^(.+?)(\d+(?:\.\d+)?)\s*(顆|份|杯|瓶|碗|片|個|包|盒|匙)?$/);
+        if (endMatch) {
+          return { foodText: endMatch[1].trim(), servings: Number(endMatch[2]) };
+        }
+
+        if (/半/.test(text)) {
+          return { foodText: text.replace(/半(份|碗|杯|顆|瓶)?/g, '').trim(), servings: 0.5 };
+        }
+
+        return { foodText: text, servings: 1 };
+      }
+
+      function normalizeNumberWords(text) {
+        return String(text || '')
+          .replaceAll('一', '1')
+          .replaceAll('兩', '2')
+          .replaceAll('二', '2')
+          .replaceAll('三', '3')
+          .replaceAll('四', '4')
+          .replaceAll('五', '5');
+      }
+
+      function findTemplate(foodText) {
+        const normalized = normalizeFoodText(foodText);
+        return state.mealTemplates.find((template) => {
+          const names = [template.name, ...(template.aliases || [])].map(normalizeFoodText).filter(Boolean);
+          return names.some((name) => normalized.includes(name) || name.includes(normalized));
+        });
+      }
+
+      function normalizeFoodText(text) {
+        return String(text || '').toLowerCase().replace(/\s+/g, '');
       }
 
       function updateTotals() {
@@ -638,9 +734,19 @@
         $('#calorieTotal').textContent = calories;
         $('#completionRate').textContent = Math.round((points / 6) * 100);
 
-        $$('#mealList .meal-card').forEach((card, index) => {
-          const meal = meals[index];
-          card.querySelector('.meal-total').textContent = `${meal.proteinTotal} g 蛋白質 / ${meal.calorieTotal} kcal`;
+        renderParsedMeals(meals);
+      }
+
+      function renderParsedMeals(meals) {
+        $('#parsedMeals').innerHTML = '';
+        meals.forEach((meal) => {
+          const row = document.createElement('div');
+          row.className = 'parsed-item';
+          row.innerHTML = `
+            <span><strong>${escapeHtml(meal.mealType)}</strong> ${escapeHtml(meal.rawText)} → ${escapeHtml(meal.foodName)} × ${meal.servings}</span>
+            <span>${meal.proteinTotal}g</span>
+          `;
+          $('#parsedMeals').appendChild(row);
         });
       }
 
@@ -683,6 +789,7 @@
           person: state.person,
           ...state.checks,
           meals: collectMeals(),
+          mealTexts: collectMealTexts(),
           waterMl: Number($('#waterMl').value || 0),
           steps: Number($('#steps').value || 0),
           mood: $('#mood').value,
@@ -747,9 +854,40 @@
         state.workout = data.workout;
         $('#date').value = data.today;
         $('#todayLabel').textContent = data.today;
+        $('#templateHint').textContent = `已讀取 ${state.mealTemplates.length} 個 Meal Template 品項。可輸入：2顆蛋 + 豆漿 + 優格`;
         renderWorkout();
-        addMeal('早餐');
         updateTotals();
+      }
+
+      function loadInitialFromWebApp() {
+        if (!WEB_APP_URL) {
+          applyInitialData(getStaticInitialData());
+          return;
+        }
+
+        const callbackName = `joanFitnessInitial_${Date.now()}`;
+        const script = document.createElement('script');
+        const timer = window.setTimeout(() => {
+          $('#templateHint').textContent = '讀取 Google Sheet 食物模板逾時，先使用內建模板。';
+          applyInitialData(getStaticInitialData());
+          script.remove();
+          delete window[callbackName];
+        }, 5000);
+        window[callbackName] = (data) => {
+          window.clearTimeout(timer);
+          applyInitialData(data);
+          script.remove();
+          delete window[callbackName];
+        };
+        script.onerror = () => {
+          window.clearTimeout(timer);
+          $('#templateHint').textContent = '讀取 Google Sheet 食物模板失敗，先使用內建模板。';
+          applyInitialData(getStaticInitialData());
+          script.remove();
+          delete window[callbackName];
+        };
+        script.src = `${WEB_APP_URL}?action=initial&callback=${encodeURIComponent(callbackName)}`;
+        document.body.appendChild(script);
       }
 
       function getStaticInitialData() {
@@ -757,15 +895,15 @@
         return {
           today,
           mealTemplates: [
-            { name: '茶葉蛋', category: '蛋白質', calories: 75, protein: 6 },
-            { name: '統一陽光無加糖高纖豆漿', category: '飲品', calories: 160, protein: 14 },
-            { name: '光泉純乳優格 135g', category: '乳製品', calories: 115, protein: 5 },
-            { name: '無糖優格', category: '乳製品', calories: 100, protein: 6 },
-            { name: '牛排', category: '蛋白質', calories: 350, protein: 35 },
-            { name: '娃娃菜', category: '蔬菜', calories: 35, protein: 2 },
-            { name: '黃豆芽', category: '蔬菜', calories: 70, protein: 6 },
-            { name: '白飯', category: '主食', calories: 280, protein: 5 },
-            { name: '鐵板麵', category: '外食', calories: 500, protein: 12 },
+            { name: '茶葉蛋', category: '蛋白質', calories: 75, protein: 6, aliases: ['蛋', '雞蛋', '水煮蛋'] },
+            { name: '統一陽光無加糖高纖豆漿', category: '飲品', calories: 160, protein: 14, aliases: ['豆漿', '無糖豆漿'] },
+            { name: '光泉純乳優格 135g', category: '乳製品', calories: 115, protein: 5, aliases: ['光泉優格'] },
+            { name: '無糖優格', category: '乳製品', calories: 100, protein: 6, aliases: ['優格'] },
+            { name: '牛排', category: '蛋白質', calories: 350, protein: 35, aliases: ['牛肉'] },
+            { name: '娃娃菜', category: '蔬菜', calories: 35, protein: 2, aliases: [] },
+            { name: '黃豆芽', category: '蔬菜', calories: 70, protein: 6, aliases: ['豆芽'] },
+            { name: '白飯', category: '主食', calories: 280, protein: 5, aliases: ['飯', '米飯'] },
+            { name: '鐵板麵', category: '外食', calories: 500, protein: 12, aliases: ['麵'] },
           ],
           workout: getStaticWorkout(today),
         };
